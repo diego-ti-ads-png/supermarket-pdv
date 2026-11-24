@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#10251d"><title>Supermarket | PDV</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main id="auth-screen" class="auth-wrap">
+    <section class="auth-card">
+      <div class="brand">
+        <svg viewBox="0 0 64 64" role="img" aria-label="Supermarket" width="52" height="52">
+          <rect x="3" y="3" width="58" height="58" rx="16" fill="#168451"/>
+          <path d="M15 20h7l5 25h19l6-19H25" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="30" cy="51" r="3" fill="white"/><circle cx="46" cy="51" r="3" fill="white"/>
+        </svg>
+        <div><strong>Supermarket</strong><small>Gestão inteligente</small></div>
+      </div>
+      <h1 id="auth-title">Acesse sua conta</h1>
+      <form id="auth-form">
+        <div id="name-field" class="hidden"><label>Nome completo<input id="full-name" autocomplete="name"></label></div>
+        <label>E-mail<input id="email" type="email" autocomplete="email" required></label>
+        <small id="email-hint" class="hint">Informe um e-mail válido.</small>
+        <label>Senha<input id="password" type="password" autocomplete="current-password" required></label>
+        <ul id="password-rules" class="rules hidden">
+          <li data-rule="length">Mínimo de 12 caracteres</li><li data-rule="upper">Uma letra maiúscula</li>
+          <li data-rule="lower">Uma letra minúscula</li><li data-rule="special">Um caractere especial</li>
+        </ul>
+        <button class="primary" id="auth-submit">Entrar</button>
+        <p id="auth-message" role="status"></p>
+      </form>
+      <button class="link-button" id="toggle-auth">Criar uma conta</button>
+    </section>
+  </main>
+  <div id="app-screen" class="hidden">
+    <header class="topbar">
+      <div class="brand compact"><strong>🛒 Supermarket</strong><small>PAINEL DE OPERAÇÃO</small></div>
+      <div class="user-box"><span id="user-label"></span><button id="logout" class="outline">Sair</button></div>
+    </header>
+    <div class="layout">
+      <aside id="sidebar" class="sidebar"></aside>
+      <main class="content">
+        <div class="page-heading"><div><p class="eyebrow">VISÃO GERAL</p><h1 id="page-title">PDV</h1></div><span id="today"></span></div>
+        <section id="page-content"></section>
+      </main>
+    </div>
+  </div>
+  <script src="/app.js" defer></script>
+</body></html>
