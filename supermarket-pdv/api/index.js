@@ -73,23 +73,111 @@ const asyncRoute = fn => (req, res, next) => Promise.resolve(fn(req, res, next))
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "supermarket-pdv" }));
 
+
 app.post("/api/auth/register", asyncRoute(async (req, res) => {
   const { email, password, full_name } = req.body || {};
-  if (!isValidEmail(email)) return res.status(400).json({ error: "Informe um endereço de e-mail válido." });
-  const errors = passwordErrors(password);
-  if (errors.length) return res.status(400).json({ error: "A senha não atende aos requisitos.", details: errors });
-  if (!full_name?.trim()) return res.status(400).json({ error: "Informe o nome completo." });
-  // Novos cadastros recebem o perfil Vendedor. Diretor deve promover os demais pela gestão.
-  const { data, error } = await db().auth.signUp({ email: email.trim().toLowerCase(), password });
-  if (error) return res.status(400).json({ error: error.message });
-  if (data.user) {
-    const { error: insertError } = await db().from("profiles").upsert({
-      id: data.user.id, email: data.user.email, full_name: full_name.trim(), role: "Vendedor", active: true
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({
+      error: "Informe um endereço de e-mail válido."
     });
-    if (insertError) return res.status(500).json({ error: "Conta criada, mas não foi possível criar o perfil. Contate o administrador." });
   }
-  res.status(201).json({ message: "Cadastro realizado. Confirme seu e-mail se a confirmação estiver habilitada." });
+
+  const errors = passwordErrors(password);
+
+  if (errors.length) {
+    return res.status(400).json({
+      error: "A senha não atende aos requisitos.",
+      details: errors
+    });
+  }
+
+  if (typeof full_name !== "string" || !full_name.trim()) {
+    return res.status(400).json({
+      error: "Informe o nome completo."
+    });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedName = full_name.trim();
+
+  // Envia o nome completo também para os metadados do Supabase Auth.
+  const { data, error } = await db().auth.signUp({
+    email: normalizedEmail,
+    password,
+    options: {
+      data: {
+        full_name: normalizedName
+      }
+    }
+  });
+
+  if (error) {
+    return res.status(400).json({
+      error: error.message
+    });
+  }
+
+  if (!data.user) {
+    return res.status(400).json({
+      error: "Não foi possível criar a conta."
+    });
+  }
+
+  const userId = data.user.id;
+
+  // O gatilho do banco pode já ter criado o perfil.
+  const { data: existingProfile, error: readError } = await db()
+    .from("profiles")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (readError) {
+    console.error("Erro ao consultar perfil:", readError);
+    return res.status(500).json({
+      error: "Conta criada, mas houve um erro ao consultar o perfil."
+    });
+  }
+
+  let profileError;
+
+  if (existingProfile) {
+    const result = await db()
+      .from("profiles")
+      .update({
+        email: normalizedEmail,
+        full_name: normalizedName
+      })
+      .eq("id", userId);
+
+    profileError = result.error;
+  } else {
+    const result = await db()
+      .from("profiles")
+      .insert({
+        id: userId,
+        email: normalizedEmail,
+        full_name: normalizedName,
+        role: "Vendedor",
+        active: true
+      });
+
+    profileError = result.error;
+  }
+
+  if (profileError) {
+    console.error("Erro ao salvar perfil:", profileError);
+    return res.status(500).json({
+      error: "Conta criada, mas não foi possível concluir o perfil."
+    });
+  }
+
+  return res.status(201).json({
+    message: "Cadastro realizado com sucesso. Confirme seu e-mail se necessário."
+  });
 }));
+
 
 app.post("/api/auth/login", asyncRoute(async (req, res) => {
   const { email, password } = req.body || {};
